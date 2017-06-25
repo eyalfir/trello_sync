@@ -1,0 +1,6 @@
+#! /usr/local/bin/python
+
+from trello_sync import trello_sync
+
+if __name__ == '__main__':
+    trello_sync.main()

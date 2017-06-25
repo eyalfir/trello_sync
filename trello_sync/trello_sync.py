@@ -1,5 +1,3 @@
-#! /usr/local/bin/python
-
 import sys
 import os
 import trello
@@ -52,7 +50,7 @@ def new_list(new_list_name, args):
     return list_record['id']
 
 def rename_list(id, new_list_name, args):
-    logging.info('rename list %s to %s', id, new_list_name)
+    raise NotImplemented('rename list %s to %s' % (id, new_list_name))
 
 def remove_card(card_id, args):
     logging.info('closing card %s', card_id)
@@ -68,10 +66,10 @@ def new_card(name, list_id, description, args):
     return id['id']
 
 def rename_card(card_id, name, args):
-    logging.info('renaming card %s to %s (UNIMPLEMENTED)', card_id, name)
+    raise NotImplemented('renaming card %s to %s' % (card_id, name))
 
 def update_description(card_id, description, args):
-    logging.info('updating description of card %s to %s (UNIMPLEMENTED)', card_id, description)
+    raise NotImplemented('updating description of card %s to %s (UNIMPLEMENTED)' % (card_id, description))
 
 def parse_name_and_id(s):
     match = re.match('(?P<name>[^\(]*)( \((?P<id>[^\)]*)|$)', s)
@@ -144,7 +142,7 @@ def main():
     args.func(args)
 
 def mock(args):
-    print compact_board_to_yml([{'list (list_id)': ['card1 (card1_id)', {'card2 (card2_id': 'card2 description'}]}])
+    print compact_board_to_yml([{'list (list_id)': ['card1 (card1_id)', {'card2 (card2_id)': 'card2 description'}]}])
 
 def fetch_board(args):
     current_board_dict = get_current_board_dict(board_id=args.board, client=args.client)
@@ -155,6 +153,3 @@ def update_board(args):
     current_board_dict = get_current_board_dict(board_id=args.board, client=args.client)
     suggested_board_compact = read_board_yaml(filename=args.filename)
     compare_boards(suggested_board_compact, current_board_dict, args=args)
-
-if __name__ == '__main__':
-    main()
