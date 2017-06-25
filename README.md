@@ -1,19 +1,21 @@
-trello_sync
-===
+# trello_sync
+
 simple utility to sync a Trello board to YAML file
 
-Setup
----
+## Setup
+
 add this JSON file to your HOME directory, under the name .trello:
 
+```
         {
                 "key": "YOUR TRELLO KEY",
                 "token":"YOUR TRELLO TOKEN",
                 "board": "BOARD ID",
                 "filename": "FILENAME TO SYNC"
         }
+```
 
-Getting a token:
+## Getting a token:
 
 Sign-in to trello.com as the user you want to use for trello_cli.
 
@@ -30,8 +32,12 @@ Next, get a member token. You will need to replace **YOUR_API_KEY** in the link 
 Use the result to replace **YOUR TRELLO TOKEN** in the .trello file.
 
 
-Pro tip
----
+## Pro tip
+
 Add this to your .vimrc to have VIM automatically sync the board file:
 
-        autocmd! BufWritePost *board.yml !cp ~/board.yml /tmp/board.yml.backup && trello_sync update 2>> /tmp/sync.log && trello_sync fetch > ~/board.yml
+    autocmd! BufWritePost *board.yml !cp ~/board.yml /tmp/board.yml.backup && trello_sync update 2>> /tmp/sync.log && trello_sync fetch > ~/board.yml
+
+## Thanks
+
+Thanks to @weavenet and his [trello_cli](https://github.com/weavenet/trello_cli) repository from which parts of this README file was created.
