@@ -27,7 +27,7 @@ The top field contains your Developer API Key.  Use it to replace **YOUR TRELLO 
 
 Next, get a member token. You will need to replace **YOUR_API_KEY** in the link below with the API key obtained in the previous step.
 
-    https://trello.com/1/authorize?key=YOUR_API_KEY&name=trello-cli&expiration=never&response_type=token&scope=read,write
+    https://trello.com/1/authorize?key=YOUR_API_KEY&name=trello_sync&expiration=never&response_type=token&scope=read,write
 
 Use the result to replace **YOUR TRELLO TOKEN** in the .trello file.
 
