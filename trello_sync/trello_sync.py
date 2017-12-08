@@ -1,4 +1,5 @@
 import sys
+from collections import OrderedDict
 import os
 import trello
 import yaml
@@ -6,8 +7,10 @@ import re
 import json
 import argparse
 import logging
+import requests
 
 DEFAULT_CONFIG_FILENAME = '.trello'
+REMOVE_SIGN = '-'
 
 def load_configuration_file(filename, args):
     configuration_dict = json.load(file(filename))
@@ -42,7 +45,16 @@ def to_compact_board_dict(d):
     return compact
         
 def compact_board_to_yml(b):
-    return yaml.safe_dump(b, default_flow_style=False)
+    return yaml.safe_dump(b, default_flow_style=False, width=10000)
+
+URL = 'https://trello.com/1'
+def build_params(args):
+    return dict(key=args.key, token=args.token)
+
+def update_card_pos(id, new_pos, args):
+    resp = requests.put(URL + '/cards/%s/pos' % id, params=build_params(args), data={'value': new_pos})
+    resp.raise_for_status()
+    return json.loads(resp.content)
 
 def new_list(new_list_name, args):
     list_record = args.client.lists.new(new_list_name, args.board)
@@ -53,11 +65,9 @@ def rename_list(id, new_list_name, args):
     raise NotImplemented('rename list %s to %s' % (id, new_list_name))
 
 def remove_card(card_id, args):
-    logging.info('closing card %s', card_id)
     args.client.cards.update_closed(card_id, 'true')
 
 def remove_list(list_id, args):
-    logging.info('closing list %s', list_id)
     args.client.lists.update_closed(list_id, 'true')
 
 def new_card(name, list_id, description, args):
@@ -65,19 +75,16 @@ def new_card(name, list_id, description, args):
     logging.info('creating new card with name %s in list %s with description %s', name, list_id, description)
     return id['id']
 
-def rename_card(card_id, name, args):
-    raise NotImplemented('renaming card %s to %s' % (card_id, name))
-
 def update_description(card_id, description, args):
-    raise NotImplemented('updating description of card %s to %s (UNIMPLEMENTED)' % (card_id, description))
+    args.client.cards.update_desc(card_id, description)
 
 def parse_name_and_id(s):
     match = re.match('(?P<name>[^\(]*)( \((?P<id>[^\)]*)|$)', s)
     return match.groupdict()['name'], match.groupdict()['id']
 
 def compare_lists(list_id, new_cards_compact, old_list_cards, args):
-    old_list_dict = {x['id']: x for x in old_list_cards}
-    new_card_ids = set()
+    old_list_dict = OrderedDict([(x['id'], x) for x in old_list_cards])
+    new_cards_ids = []
     for card in new_cards_compact:
         if isinstance(card, dict):
             name, id = parse_name_and_id(card.keys()[0])
@@ -86,16 +93,28 @@ def compare_lists(list_id, new_cards_compact, old_list_cards, args):
             name, id = parse_name_and_id(card)
             description = ""
         if id:
+            if name[0] == REMOVE_SIGN:
+                logging.info('closing card %s with name %s', id, old_list_dict[id]['name'])
+                remove_card(id, args)
+                del old_list_dict[id]
+                continue
             old_card = old_list_dict[id]
             if name != old_card['name']:
-                rename_card(id, name, args)
+                logging.info('renaming card %s with name %s to %s', id, old_card['name'], name)
+                args.client.cards.update_name(id, name)
             if description != old_card['desc']:
-                update_description(id, description)
-            new_card_ids.add(id)
-        else:
-            new_card_ids.add(new_card(name, list_id, description, args))
-    for id in set(old_list_dict.keys()) - new_card_ids:
-        remove_card(id, args)
+                update_description(id, description, args)
+            new_cards_ids.append(id)
+        elif name[0] != REMOVE_SIGN:
+            new_cards_ids.append(new_card(name, list_id, description, args))
+    for i, id in enumerate(new_cards_ids):
+        try:
+            old_index = list(old_list_dict).index(id)
+        except ValueError:
+            old_index = -1
+        if old_index != i:
+            logging.info('moving card %s to position %d' % (id, i + 1))
+            update_card_pos(id, i + 1, args)
 
 
 
@@ -112,10 +131,11 @@ def compare_boards(new_compact, old_board, args):
             new_lists_ids.add(id)
         else:
             new_id = new_list(name, args)
-            compare_lists(new_id, l.values()[0], [])
+            compare_lists(new_id, l.values()[0], [], args)
             new_lists_ids.add(new_id)
     for id in set(old_lists_dict.keys()) - new_lists_ids:
-        remove_list(id)
+        logging.info('closing list %s with name %s' % (id, old_lists_dict[id]['name']))
+        remove_list(id, args)
 
 def main():
     parser = argparse.ArgumentParser()
